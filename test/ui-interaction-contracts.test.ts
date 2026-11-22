@@ -328,6 +328,7 @@ describe("UI interaction contracts", () => {
       "byModel",
       "byRepo",
       "byOutcome",
+      "byWorkType",
       "previousSummary",
       "activity",
       "modelSparklines",

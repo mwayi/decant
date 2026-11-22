@@ -240,6 +240,11 @@ describe("local API OpenAPI contract", () => {
           url: "/api/stats/by-dimension?dim=outcome",
         },
         {
+          path: "/api/stats/by-dimension",
+          method: "get",
+          url: "/api/stats/by-dimension?dim=work_type",
+        },
+        {
           path: "/api/stats/summary",
           method: "get",
           url: "/api/stats/summary?repo=%2Fnot%2Fa%2Frepo",

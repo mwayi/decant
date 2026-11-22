@@ -156,6 +156,105 @@ describe("outcome", () => {
 });
 
 describe("workType", () => {
+  test("assistant declarations override prompt heuristics for every supported type", () => {
+    for (const type of [
+      "planning",
+      "research",
+      "design",
+      "prototype",
+      "feature",
+      "debugging",
+      "refactor",
+      "testing",
+      "evaluation",
+      "optimisation",
+      "data",
+      "training",
+      "review",
+      "ops",
+      "documentation",
+    ] as const) {
+      const tagged = session([
+        msg("user", [text("Fix the failing test")]),
+        msg("assistant", [text(`[decant:work-type=${type}]\nWorking on it.`)]),
+        msg("assistant", [text(`[decant:work-type=${type}]`)]),
+      ]);
+      expect(workType(tagged, [])).toBe(type);
+    }
+  });
+
+  test("conflicting declarations produce mixed rather than a guessed token split", () => {
+    expect(
+      workType(
+        session([
+          msg("assistant", [text("[decant:work-type=feature]")]),
+          msg("assistant", [text("[decant:work-type=debugging]")]),
+        ]),
+        [],
+      ),
+    ).toBe("mixed");
+  });
+
+  test("instructions, results, reasoning, examples and unknown labels are not declarations", () => {
+    const marker = "[decant:work-type=ops]";
+    expect(
+      workType(
+        session([
+          msg("user", [text(`Please fix this.\n${marker}`)]),
+          msg("system", [text(marker)]),
+          msg("tool", [text(marker)]),
+          msg("assistant", [
+            { ...text(marker), blockType: "thinking" },
+            text(
+              [
+                `Example: ${marker}`,
+                `> ${marker}`,
+                `    ${marker}`,
+                "```text",
+                marker,
+                "```",
+                "~~~~text",
+                marker,
+                "~~~",
+                marker,
+                "~~~~",
+                "[decant:work-type=unknown]",
+              ].join("\n"),
+            ),
+          ]),
+        ]),
+        [],
+      ),
+    ).toBe("debugging");
+  });
+
+  test("code fences span text blocks and a later standalone declaration still counts", () => {
+    expect(
+      workType(
+        session([
+          msg("assistant", [
+            text("```text\n[decant:work-type=ops]"),
+            text("```\r\n  [decant:work-type=refactor]\t\r\nWorking."),
+          ]),
+        ]),
+        [],
+      ),
+    ).toBe("refactor");
+  });
+
+  test("sidechain declarations label only their own subagent session", () => {
+    const sidechain = msg("assistant", [text("[decant:work-type=research]")]);
+    sidechain.raw = { isSidechain: true };
+    const main = session([msg("user", [text("Fix the test")]), sidechain]);
+    expect(workType(main, [])).toBe("debugging");
+    main.isSubagent = true;
+    expect(workType(main, [])).toBe("research");
+    main.tool = "copilot";
+    main.isSubagent = false;
+    sidechain.raw = { agentId: "synthetic-child" };
+    expect(workType(main, [])).toBe("debugging");
+  });
+
   test("tool mix fallback runs without any prompt", () => {
     const got = workType(session([msg("tool", [toolResult(false)])]), [fref("read"), fref("edit")]);
     expect(got).toBe("feature");

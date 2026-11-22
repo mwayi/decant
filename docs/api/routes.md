@@ -49,6 +49,10 @@ matches sessions whose project is that root or one of its worktrees, where
 `project` matches one exact path. `dim=repo` groups rows the same way, and
 `dim=outcome` groups every run under the outcome label of its top-level
 session: `completed`, `abandoned`, `failed`, or `(unclassified)`.
+`dim=work_type` groups each session's own usage by its stored work-type label.
+Explicit assistant tags override inference. Untagged sessions retain heuristic
+labels; conflicting declarations produce `mixed`. Subagents contribute tokens
+and cost to their own type, but session counts remain top-level only.
 
 The API's `repo` takes one stored root and compares it as written. The CLI's
 `--repo` on `decant ls` and `decant search` first resolves a directory, a

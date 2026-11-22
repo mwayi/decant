@@ -24,6 +24,8 @@ function sourceDirs(root: string): Record<string, string> {
     copilot: join(root, "copilot"),
     "vscode-copilot": join(root, "vscode", "User"),
     atif: join(root, "atif"),
+    hermes: join(root, "hermes"),
+    pi: join(root, "pi"),
   };
   for (const dir of Object.values(dirs)) mkdirSync(dir, { recursive: true });
   return dirs;

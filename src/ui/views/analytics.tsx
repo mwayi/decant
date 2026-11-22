@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { alignToSeries, buildDaySeries, type DaySeries } from "../../day-series.ts";
 import { sharePercentLabel } from "../../share-percent.ts";
+import { WORK_TYPES, workTypeLabel } from "../../work-types.ts";
 import {
   cacheDetail,
   cacheHitRate,
@@ -360,6 +361,8 @@ export function AnalyticsView({
         loading={status("tokenEconomics") === "loading"}
       />
 
+      <WorkTypesPanel rows={data.byWorkType} status={status("byWorkType")} />
+
       <OutcomesPanel
         loading={status("byOutcome") === "loading"}
         perCompleted={usageUnavailable ? null : perCompleted}
@@ -655,6 +658,125 @@ function FailedState() {
 
 const PER_COMPLETED_TITLE =
   "All estimated cost in range, abandoned and failed sessions included, divided by the sessions that completed.";
+
+export function WorkTypesPanel({
+  rows = [],
+  status = "ready",
+}: {
+  rows: DimensionRow[];
+  status?: SliceStatus;
+}) {
+  const ordered = [...rows].sort(
+    (left, right) =>
+      right.estimated_cost_usd - left.estimated_cost_usd ||
+      right.sessions - left.sessions ||
+      left.key.localeCompare(right.key),
+  );
+  const totalCost = ordered.reduce((sum, row) => sum + row.estimated_cost_usd, 0);
+  const present = new Set(rows.map((row) => row.key));
+  const unused = WORK_TYPES.filter((type) => !present.has(type));
+  return (
+    <section className="panel" {...updatingProps(status === "loading" && rows.length > 0)}>
+      <div className="panel-heading">
+        <div>
+          <h2>Work types</h2>
+          <p>
+            Task purpose from agent tags, with inferred labels for untagged sessions. Different
+            declarations in one session appear as Mixed.
+          </p>
+        </div>
+      </div>
+      {status === "failed" || ordered.length === 0 ? (
+        <div className="panel-body">
+          {status === "loading" ? (
+            <LoadingState what="work types" />
+          ) : status === "failed" ? (
+            <FailedState />
+          ) : (
+            <EmptyState
+              icon="chart"
+              message="Widen the date range or sync your session logs."
+              title="No work types in range"
+            />
+          )}
+        </div>
+      ) : (
+        <div className="table-scroll">
+          <table aria-label="Usage by work type">
+            <thead>
+              <tr>
+                <th scope="col">Work type</th>
+                <th className="numeric" scope="col">
+                  Sessions
+                </th>
+                <th
+                  className="numeric"
+                  scope="col"
+                  title="Uncached input tokens. Cached tokens contribute to estimated cost."
+                >
+                  Input tokens
+                </th>
+                <th className="numeric" scope="col">
+                  Output tokens
+                </th>
+                <th scope="col">Share of spend</th>
+                <th className="numeric" scope="col">
+                  Est. cost
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {ordered.map((row) => (
+                <tr key={row.key}>
+                  <td>{workTypeLabel(row.key)}</td>
+                  <td className="numeric">{formatInt(row.sessions)}</td>
+                  <td className="numeric">
+                    {usageMetric(row.sessions, row.usage_sessions, formatInt(row.input_tokens))}
+                  </td>
+                  <td className="numeric">
+                    {usageMetric(row.sessions, row.usage_sessions, formatInt(row.output_tokens))}
+                  </td>
+                  <td className="share-cell">
+                    <span className="share-cell-inner">
+                      <Bar
+                        fraction={totalCost > 0 ? row.estimated_cost_usd / totalCost : 0}
+                        tone="accent"
+                      />
+                      <small>
+                        {usageMetric(
+                          row.sessions,
+                          row.usage_sessions,
+                          sharePercentLabel(row.estimated_cost_usd, totalCost),
+                        )}
+                      </small>
+                    </span>
+                  </td>
+                  <td className="numeric">
+                    <CostValue
+                      cost={row.estimated_cost_usd}
+                      dense
+                      sessions={row.sessions}
+                      usageSessions={row.usage_sessions}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {status === "ready" && unused.length > 0 ? (
+        <details className="panel-body">
+          <summary>No sessions yet for {unused.length} work types in this range</summary>
+          <p>
+            {unused.map(workTypeLabel).join(", ")}. These appear in the table when matching sessions
+            are recorded.
+          </p>
+        </details>
+      ) : null}
+    </section>
+  );
+}
 
 export function OutcomesPanel({
   loading = false,

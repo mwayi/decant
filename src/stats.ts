@@ -114,13 +114,14 @@ export function totals(db: Database, filter?: StatsFilter | null): Totals {
   };
 }
 
-export type Dimension = "tool" | "model" | "project" | "repo" | "outcome" | "day";
+export type Dimension = "tool" | "model" | "project" | "repo" | "outcome" | "work_type" | "day";
 export const DIMENSIONS = [
   "tool",
   "model",
   "project",
   "repo",
   "outcome",
+  "work_type",
   "day",
 ] as const satisfies readonly Dimension[];
 
@@ -173,7 +174,7 @@ function groupedRows(
   const { groupExpr, join } = dimensionSql(dimension);
   const statement = db.prepare(
     `WITH filtered_session AS (
-         SELECT s.id, s.tool, s.model, s.project_id, s.started_at, s.is_subagent,
+         SELECT s.id, s.tool, s.model, s.project_id, s.started_at, s.is_subagent, s.work_type,
                 s.total_input_tokens, s.total_output_tokens, s.total_reasoning_tokens,
                 s.est_reasoning_tokens, s.estimated_cost_usd,
                 ${sessionUsageAvailableSql("s")} AS usage_available
@@ -861,6 +862,8 @@ function dimensionSql(dimension: Exclude<Dimension, "model" | "outcome">): {
   switch (dimension) {
     case "tool":
       return { groupExpr: "s.tool", join: "" };
+    case "work_type":
+      return { groupExpr: "COALESCE(s.work_type, '(unclassified)')", join: "" };
     case "project":
       return {
         groupExpr: `COALESCE(p.path, '${NO_PROJECT_KEY}')`,

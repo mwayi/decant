@@ -310,6 +310,7 @@ export type DashboardData = {
   byModel: DimensionRow[];
   byRepo: DimensionRow[];
   byOutcome: DimensionRow[];
+  byWorkType: DimensionRow[];
   byDay: DimensionRow[];
   previousSummary: Summary | null;
   projects: ProjectSummary[];

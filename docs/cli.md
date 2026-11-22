@@ -19,6 +19,14 @@ as their JSON result on stdout, with an `error` string. They exit 1 when the
 session or recommendation does not exist. `session rm` exits 2 when the session
 has descendants and `--yes` was not passed.
 
+## Work-type totals
+
+`decant stats --by work_type --json` reports token usage and estimated cost by
+stored work type. Explicit assistant tags override inference; see
+[work-type labels](analytics-methodology.md#work-type-and-completion-labels).
+Untagged sessions retain heuristic labels. A session with different declared
+types is `mixed`; no label is `(unclassified)`.
+
 ## Exit codes
 
 | Code | Meaning |

@@ -1,9 +1,11 @@
 import type { FileRef } from "./enrich.ts";
 import type { NormalizedBlock, NormalizedSession } from "./model.ts";
 import { headScalars } from "./tools.ts";
+import { WORK_TYPES, type WorkType } from "./work-types.ts";
+
+export type { WorkType } from "./work-types.ts";
 
 export type Outcome = "completed" | "failed" | "abandoned";
-export type WorkType = "debugging" | "feature" | "refactor" | "research" | "ops";
 
 export function outcome(session: NormalizedSession): Outcome | null {
   const main = session.messages.filter(
@@ -51,6 +53,10 @@ export function outcome(session: NormalizedSession): Outcome | null {
 }
 
 export function workType(session: NormalizedSession, refs: readonly FileRef[]): WorkType | null {
+  const declared = declaredWorkType(session);
+  if (declared != null) {
+    return declared;
+  }
   const prompt = firstUserPrompt(session);
   if (prompt != null) {
     const keyword = keywordWorkType(prompt);
@@ -59,6 +65,45 @@ export function workType(session: NormalizedSession, refs: readonly FileRef[]): 
     }
   }
   return toolMixWorkType(session, refs);
+}
+
+function declaredWorkType(session: NormalizedSession): WorkType | null {
+  const types = new Set<WorkType>();
+  for (const message of session.messages) {
+    if (
+      message.role !== "assistant" ||
+      (!session.isSubagent &&
+        (rawBoolean(message.raw, "isSidechain") === true ||
+          (session.tool === "copilot" && rawString(message.raw, "agentId") != null)))
+    ) {
+      continue;
+    }
+    let closingFence: RegExp | null = null;
+    for (const block of message.blocks) {
+      if (block.blockType !== "text") {
+        continue;
+      }
+      for (const line of (block.text ?? "").split(/\r?\n/)) {
+        if (closingFence != null) {
+          if (closingFence.test(line)) {
+            closingFence = null;
+          }
+          continue;
+        }
+        const fence = line.match(/^ {0,3}(`{3,}|~{3,})/)?.[1];
+        if (fence != null) {
+          closingFence = new RegExp(`^ {0,3}${fence[0]}{${fence.length},}\\s*$`);
+          continue;
+        }
+        const marker = line.match(/^ {0,3}\[decant:work-type=([a-z]+)\][\t ]*$/)?.[1];
+        const type = WORK_TYPES.find((value) => value === marker);
+        if (type != null) {
+          types.add(type);
+        }
+      }
+    }
+  }
+  return types.size > 1 ? "mixed" : (types.values().next().value ?? null);
 }
 
 function firstUserPrompt(session: NormalizedSession): string | null {
@@ -220,4 +265,12 @@ function rawBoolean(raw: unknown, key: string): boolean | null {
   }
   const value = (raw as Record<string, unknown>)[key];
   return typeof value === "boolean" ? value : null;
+}
+
+function rawString(raw: unknown, key: string): string | null {
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+    return null;
+  }
+  const value = (raw as Record<string, unknown>)[key];
+  return typeof value === "string" ? value : null;
 }

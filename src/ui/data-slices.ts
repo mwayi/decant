@@ -26,6 +26,7 @@ export const emptyData: DashboardData = {
   byModel: [],
   byRepo: [],
   byOutcome: [],
+  byWorkType: [],
   byDay: [],
   previousSummary: null,
   projects: [],
@@ -69,6 +70,14 @@ export const SLICE_LOADERS: Record<
     load: async (q) => ({
       byOutcome: await getJson<DimensionRow[]>(
         withDateQuery("/api/stats/by-dimension?dim=outcome", q),
+      ),
+    }),
+  },
+  byWorkType: {
+    dateScoped: true,
+    load: async (q) => ({
+      byWorkType: await getJson<DimensionRow[]>(
+        withDateQuery("/api/stats/by-dimension?dim=work_type", q),
       ),
     }),
   },
@@ -177,6 +186,7 @@ export const ROUTE_SLICES: Record<string, DataSlice[]> = {
     "byModel",
     "byRepo",
     "byOutcome",
+    "byWorkType",
     "previousSummary",
     "activity",
     "modelSparklines",

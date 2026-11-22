@@ -796,6 +796,10 @@ paths:
         top-level session (`completed`, `abandoned`, `failed`, or
         `(unclassified)`), so a subagent's tokens and cost land on the session
         that started it, even when a date filter leaves that parent out.
+        The `work_type` dimension groups each session's own token usage and
+        estimated cost by its stored work type, including `mixed` and
+        `(unclassified)`. Untagged sessions retain heuristic labels. Subagents
+        contribute usage to their own label but do not increase session counts.
       parameters:
         - $ref: "#/components/parameters/Dimension"
         - $ref: "#/components/parameters/FromDate"
@@ -1387,7 +1391,7 @@ components:
       required: true
       schema:
         type: string
-        enum: [tool, model, project, repo, outcome, day]
+        enum: [tool, model, project, repo, outcome, work_type, day]
     FileGroup:
       name: group
       in: query

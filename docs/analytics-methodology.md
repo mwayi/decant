@@ -103,9 +103,49 @@ costliest repositories in the range, then applies the chosen sort to them.
 
 ## Work type and completion labels
 
-Work type and outcome are lightweight transcript-shape heuristics, not evidence
-that a change shipped or achieved its goal. Work type starts with keywords in
-the first user prompt and can fall back to the mix of file and web activity.
+Work type can be declared by the agent with a standalone assistant-text line:
+
+```text
+[decant:work-type=feature]
+```
+
+Accepted declarations are `planning`, `research`, `design`, `prototype`,
+`feature`, `debugging`, `refactor`, `testing`, `evaluation`, `optimisation`,
+`data`, `training`, `review`, `ops`, and `documentation`. Testing checks
+software correctness; evaluation measures AI quality, reliability or behaviour.
+Training changes model weights. Optimisation targets latency, token spend,
+memory or throughput. Prompt and context engineering use the intended outcome's
+type rather than a separate activity label.
+
+A declaration overrides the first-prompt and tool-mix heuristics. User,
+system, tool-result, thinking, quoted, indented-code and fenced-code examples
+do not count. Sidechain declarations do not label a main session; a subagent
+session can declare its own type. Repeated identical tags count as one type.
+Different types in one session produce `mixed`: Decant does not estimate a
+per-task token split. Use separate sessions when that split matters.
+
+The tag declares the task's purpose, not each activity needed to finish it.
+Incidental testing or refactoring during feature work remains `feature`.
+Labels describe intent, not evidence that a change shipped or achieved its goal.
+Untagged sessions retain lightweight heuristics: keywords in the first user
+prompt, then the mix of file and web activity. Historical sessions are not
+reclassified solely because this marker convention was added; new and changed
+sources use it on their next sync. The declaration stays in the transcript and
+is read again if the session is re-indexed. No model call is made.
+
+The Analytics dashboard's **Work types** panel shows sessions, input/output
+tokens, share of estimated spend, and estimated cost. It follows the dashboard's
+date range and agent-source filter. Types with no matching sessions are listed
+under **No sessions yet**, so unused categories are not mistaken for missing
+support. The input column excludes cache tokens; estimated cost includes them.
+
+`decant stats --by work_type --json` and
+`GET /api/stats/by-dimension?dim=work_type` group each session's own usage and
+estimated cost by its stored label. Missing labels appear as `(unclassified)`.
+These totals include existing heuristic classifications; the dimension is not
+a filter for explicitly tagged work. Subagents contribute their own usage to
+their own label, while session counts include only top-level sessions.
+
 Codex `developer` messages and the AGENTS.md or environment context Codex
 injects as a user message are system rows, so they are neither the first prompt
 nor a turn. The same holds for the `<user_info>` environment block and

@@ -807,7 +807,7 @@ describe("runCli", () => {
     expect(result.code).toBe(2);
     expect(result.stderr).toBe(
       "error: option '--by <dimension>' argument 'nope' is invalid. " +
-        "expected: tool | model | project | repo | outcome | day\n",
+        "expected: tool | model | project | repo | outcome | work_type | day\n",
     );
 
     const missingPath = await runCli(["--db", dbPath, "sync", "--path", "/tmp/definitely-missing"]);
