@@ -94,5 +94,10 @@ function authority(url: URL): string {
 
 function isLoopbackHost(hostname: string): boolean {
   const normalized = normalizeHost(hostname);
-  return normalized === "localhost" || normalized === "::1" || isIpv4Loopback(normalized);
+  return (
+    normalized === "localhost" ||
+    normalized.endsWith(".localhost") ||
+    normalized === "::1" ||
+    isIpv4Loopback(normalized)
+  );
 }

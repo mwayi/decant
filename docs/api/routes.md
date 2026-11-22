@@ -62,6 +62,13 @@ each project beside its root.
 
 ## Access control
 
+The API accepts `localhost`, subdomains ending in `.localhost`, IPv4 loopback
+addresses, and IPv6 loopback as hosts. This permits local reverse-proxy names
+such as `decant.localhost`. A hostname alone grants no remote access: broad
+binds still require a loopback or explicitly trusted peer, and browser writes
+must match the exact host and port. Other localhost subdomains are different
+origins.
+
 The API has no authentication. Any request that reaches the listener and passes
 the local guard can read or mutate the whole archive.
 

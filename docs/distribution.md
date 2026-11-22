@@ -124,6 +124,47 @@ environments, set `DECANT_TRUSTED_PEERS` to the exact forwarding IP or a narrow
 IPv4 CIDR. Every trusted address can read and mutate the archive. Decant
 refuses to start when an entry is neither an IP address nor an IPv4 CIDR.
 
+## Local hostname and Make targets
+
+For an existing private Docker installation with a local kind cluster and its
+nginx ingress controller, run:
+
+```sh
+make up       # build, start, and wait for http://decant.localhost
+make status
+make logs
+make down     # remove the route and stop; retain the archive volume
+```
+
+This workflow needs Docker, Python 3, and kubectl. Select the local kind context
+first. The helper refuses a context whose name does not start with `kind-` or
+whose API server is neither on loopback nor `0.0.0.0`; it never switches
+contexts for you.
+
+The private Compose configuration stays at
+`~/.config/decant-docker/compose.json`. It must already describe the local data
+volume, read-only session mounts, and resource limits. A different file can be
+passed with `python3 scripts/local-dev.py up --compose /path/to/compose.json`.
+Do not commit machine-specific paths or session data. If the local
+`refresh-mounts.py` helper exists beside that configuration, it runs before
+startup. Missing Git metadata mounts are also pruned before the container is
+recreated. Git metadata files are copied into private, stable snapshots before
+being mounted read-only. Deleting a temporary worktree therefore cannot break a
+later Docker restart. Session logs remain live read-only mounts.
+
+The image is built from this checkout as `decant-local:localhost`. The existing
+archive and Compose security/resource settings are preserved. The helper uses
+only the `decant` service and ingress in namespace `decant-local`, and reuses the
+existing ingress controller rather than running another proxy. The route points
+to `host.docker.internal:3000`; keep the app's published port on
+`127.0.0.1:3000`. Ingress access is limited to loopback and the exact Docker
+kind bridge gateway addresses. Live events are unbuffered through the proxy.
+
+`localhost` subdomains are accepted as API hosts. The request's peer must still
+be trusted, and mutating requests must still have a matching origin. A different
+localhost subdomain or port is not the same origin. No hosts-file entry is
+needed on platforms that resolve the reserved `.localhost` namespace.
+
 ## Source
 
 Source builds need Bun 1.3 or newer:
